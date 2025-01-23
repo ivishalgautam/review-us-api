@@ -33,6 +33,7 @@
     "nodemon": "^2.0.22",
     "pg": "^8.11.0",
     "pg-hstore": "^2.3.4",
+    "prettier": "^3.4.2",
     "pump": "^3.0.0",
     "qrcode": "^1.5.4",
     "query-string": "^8.1.0",

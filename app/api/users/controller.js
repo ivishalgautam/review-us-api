@@ -3,15 +3,19 @@
 import table from "../../db/models.js";
 import hash from "../../lib/encryption/index.js";
 import { ErrorHandler } from "../../helpers/handleError.js";
+import { sequelize } from "../../db/postgres.js";
 
 const create = async (req, res) => {
+  const transaction = await sequelize.transaction();
   req.body.role = "admin";
-  await table.UserModel.create(req);
+  await table.UserModel.create(req, { transaction });
 
+  await transaction.commit();
   return res.send({ status: true, message: "User created" });
 };
 
 const createBusiness = async (req, res) => {
+  const transaction = await sequelize.transaction();
   const record = await table.UserModel.create(req);
   if (record) {
     await table.BusinessModel.create(req, record.id);
@@ -19,6 +23,7 @@ const createBusiness = async (req, res) => {
     return ErrorHandler({ code: 400, message: "Error creating business!" });
   }
 
+  await transaction.commit();
   return res.send({ status: true, message: "User created" });
 };
 

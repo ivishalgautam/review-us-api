@@ -11,6 +11,8 @@ import { QrGenerator } from "../../lib/qr-generator.js";
 import config from "../../config/index.js";
 import { sendEmailWithAttachment } from "../../lib/mailer.js";
 import { createImageWithOverlay } from "../../lib/create-canvas.js";
+import db from "../../db/index.js";
+import { sequelize } from "../../db/postgres.js";
 
 const verifyUserCredentials = async (req, res) => {
   const userData = await table.UserModel.getByUsername(req);
@@ -75,48 +77,63 @@ const verifyBusinessCredentials = async (req, res) => {
 };
 
 const createNewUser = async (req, res) => {
-  let userData;
-  const data = await table.UserModel.create(req);
-  userData = await table.UserModel.getById(req, data.id);
+  try {
+    const transaction = await sequelize.transaction();
+    let userData;
+    const data = await table.UserModel.create(req, { transaction });
+    userData = await table.UserModel.getById(req, data.id);
 
-  const [jwtToken, expiresIn] = authToken.generateAccessToken(userData);
-  const refreshToken = authToken.generateRefreshToken(userData);
+    const [jwtToken, expiresIn] = authToken.generateAccessToken(userData);
+    const refreshToken = authToken.generateRefreshToken(userData);
 
-  return res.send({
-    status: true,
-    token: jwtToken,
-    expire_time: Date.now() + expiresIn,
-    refresh_token: refreshToken,
-    user_data: userData,
-  });
+    await transaction.commit();
+
+    return res.send({
+      status: true,
+      token: jwtToken,
+      expire_time: Date.now() + expiresIn,
+      refresh_token: refreshToken,
+      user_data: userData,
+    });
+  } catch (error) {
+    res.send(500).message({ status: false, message: error.message, error });
+  }
 };
 
 const createBusiness = async (req, res) => {
-  const password = randomBytesGenerator(5);
-  console.log({ password });
-  req.body.password = password;
-  const data = await table.UserModel.create(req);
-  if (data) {
-    const business = await table.BusinessModel.create(req, data.id);
-    console.log({ business });
-    const qr = await QrGenerator(
-      `${config.qr_base}/reviews/create?businessId=${business.id}&businessLink=${business.business_link}`
-    );
-    await sendEmailWithAttachment(
-      await createImageWithOverlay(business.business_name, qr),
-      data.email,
-      data.mobile_number,
-      password,
-      business.business_name
-    );
-  } else {
-    return ErrorHandler({ code: 400, message: "Error creating business!" });
-  }
+  const transaction = await sequelize.transaction();
+  try {
+    const password = randomBytesGenerator(5);
+    req.body.password = password;
+    const data = await table.UserModel.create(req, { transaction });
+    if (data) {
+      const business = await table.BusinessModel.create(req, data.id, {
+        transaction,
+      });
+      console.log({ business });
+      const qr = await QrGenerator(
+        `${config.qr_base}/reviews/create?businessId=${business.id}&businessLink=${business.business_link}`
+      );
+      await sendEmailWithAttachment(
+        await createImageWithOverlay(business.business_name, qr),
+        data.email,
+        data.mobile_number,
+        password,
+        business.business_name
+      );
+    } else {
+      return ErrorHandler({ code: 400, message: "Error creating business!" });
+    }
 
-  return res.send({
-    status: true,
-    message: "Created",
-  });
+    await transaction.commit();
+    return res.send({
+      status: true,
+      message: "Created",
+    });
+  } catch (error) {
+    await transaction.rollback();
+    return ErrorHandler({ code: 500, message: error.message });
+  }
 };
 
 const verifyRefreshToken = async (req, res) => {

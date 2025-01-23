@@ -40,7 +40,7 @@ const init = async (sequelize) => {
         allowNull: false,
         validate: {
           notEmpty: { msg: "Business link is required!" },
-          isUrl: true,
+          isUrl: { args: true, msg: "Please enter valid business link!" },
         },
       },
     },
@@ -53,12 +53,15 @@ const init = async (sequelize) => {
   await BusinessModel.sync({ alter: true });
 };
 
-const create = async (req, user_id) => {
-  const data = await BusinessModel.create({
-    user_id: user_id,
-    business_name: req.body.business_name,
-    business_link: req.body.business_link,
-  });
+const create = async (req, user_id, { transaction }) => {
+  const data = await BusinessModel.create(
+    {
+      user_id: user_id,
+      business_name: req.body.business_name,
+      business_link: req.body.business_link,
+    },
+    { transaction }
+  );
 
   return data.dataValues;
 };

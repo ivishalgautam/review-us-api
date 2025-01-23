@@ -91,16 +91,19 @@ const init = async (sequelize) => {
   await UserModel.sync({ alter: true });
 };
 
-const create = async (req) => {
+const create = async (req, { transaction }) => {
   const hash_password = hash.encrypt(req.body.password);
-  const data = await UserModel.create({
-    username: req.body.username,
-    password: hash_password,
-    email: req.body?.email,
-    mobile_number: req.body?.mobile_number,
-    country_code: req.body?.country_code.replace(/\s/g, ""),
-    role: req.body?.role,
-  });
+  const data = await UserModel.create(
+    {
+      username: req.body.username,
+      password: hash_password,
+      email: req.body?.email,
+      mobile_number: req.body?.mobile_number,
+      country_code: req.body?.country_code.replace(/\s/g, ""),
+      role: req.body?.role,
+    },
+    { transaction }
+  );
 
   return data.dataValues;
 };
