@@ -1,7 +1,7 @@
 "use strict";
 import constants from "../../lib/constants/index.js";
 import hash from "../../lib/encryption/index.js";
-import { DataTypes } from "sequelize";
+import { DataTypes, QueryTypes } from "sequelize";
 import { Op } from "sequelize";
 import moment from "moment";
 
@@ -105,14 +105,43 @@ const create = async (req) => {
   return data.dataValues;
 };
 
-const get = async () => {
-  return await UserModel.findAll({
-    where: { role: "user" },
-    order: [["created_at", "DESC"]],
-    attributes: {
-      exclude: ["password", "reset_password_token", "confirmation_token"],
-    },
+const get = async (req) => {
+  const whereConditions = ["usr.role != 'admin'"];
+  const queryParams = {};
+  const q = req.query.q ? req.query.q : null;
+
+  if (q) {
+    whereConditions.push(
+      `(usr.fullname ILIKE :query OR usr.email ILIKE :query)`
+    );
+    queryParams.query = `%${q}%`;
+  }
+
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : null;
+  const offset = (page - 1) * limit;
+
+  let whereClause = "";
+  if (whereConditions.length) {
+    whereClause = `WHERE ${whereConditions.join(" AND ")}`;
+  }
+
+  const query = `
+  SELECT 
+    usr.id, usr.mobile_number, usr.email, usr.role, usr.is_active, usr.created_at,
+    COUNT(usr.id) OVER()::integer as total
+  FROM ${constants.models.USER_TABLE} usr
+  ${whereClause}
+  LIMIT :limit OFFSET :offset
+  `;
+
+  const data = await UserModel.sequelize.query(query, {
+    replacements: { ...queryParams, limit, offset },
+    type: QueryTypes.SELECT,
+    raw: true,
   });
+
+  return { data, total: data?.[0]?.total };
 };
 
 const getById = async (req, user_id) => {
@@ -149,6 +178,7 @@ const getByMobile = async (req, decoded) => {
       "mobile_number",
       "country_code",
     ],
+    raw: true,
   });
 };
 
@@ -222,28 +252,24 @@ const deleteById = async (req, user_id) => {
   });
 };
 
-const countUser = async (last_30_days = false) => {
-  let where_query;
-  if (last_30_days) {
-    where_query = {
-      createdAt: {
-        [Op.gte]: moment()
-          .subtract(30, "days")
-          .format("YYYY-MM-DD HH:mm:ss.SSSZ"),
-      },
+const countUser = async (duration) => {
+  let whereQuery = { role: "user" };
+  if (duration === "lastMonth") {
+    whereQuery.created_at = {
+      [Op.gte]: moment().subtract(1, "months").startOf("month").toDate(),
+      [Op.lt]: moment().startOf("month").toDate(),
     };
   }
-  return await UserModel.findAll({
-    where: where_query,
-    attributes: [
-      "role",
-      [
-        UserModel.sequelize.fn("COUNT", UserModel.sequelize.col("role")),
-        "total",
-      ],
-    ],
-    group: "role",
-    raw: true,
+
+  if (duration === "currMonth") {
+    whereQuery.created_at = {
+      [Op.gte]: moment().startOf("month").toDate(),
+      [Op.lt]: moment().endOf("month").toDate(),
+    };
+  }
+
+  return await UserModel.count({
+    where: whereQuery,
   });
 };
 

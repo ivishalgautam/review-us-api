@@ -142,26 +142,23 @@ const deleteById = async (user_id) => {
   });
 };
 
-const countReview = async (duration) => {
-  let whereQuery;
+const countReview = async (businessId, duration) => {
+  let whereQuery = { business_id: businessId };
 
   if (duration === "lastMonth") {
-    whereQuery = {
-      created_at: {
-        [Op.gte]: moment().subtract(1, "months").startOf("month").toDate(),
-        [Op.lt]: moment().startOf("month").toDate(),
-      },
+    whereQuery.created_at = {
+      [Op.gte]: moment().subtract(1, "months").startOf("month").toDate(),
+      [Op.lt]: moment().startOf("month").toDate(),
     };
   }
 
   if (duration === "currMonth") {
-    whereQuery = {
-      created_at: {
-        [Op.gte]: moment().startOf("month").toDate(),
-        [Op.lt]: moment().endOf("month").toDate(),
-      },
+    whereQuery.created_at = {
+      [Op.gte]: moment().startOf("month").toDate(),
+      [Op.lt]: moment().endOf("month").toDate(),
     };
   }
+
   return await ReviewModel.count({
     where: whereQuery,
   });

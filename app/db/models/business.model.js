@@ -54,11 +54,13 @@ const init = async (sequelize) => {
 };
 
 const create = async (req, user_id) => {
-  return await BusinessModel.create({
+  const data = await BusinessModel.create({
     user_id: user_id,
     business_name: req.body.business_name,
     business_link: req.body.business_link,
   });
+
+  return data.dataValues;
 };
 
 const update = async (req, user_id) => {

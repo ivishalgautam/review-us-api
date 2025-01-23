@@ -37,7 +37,17 @@ export const schema = {
       ],
     },
   },
-  login: {
+  loginAdmin: {
+    body: {
+      type: "object",
+      properties: {
+        username: { type: "string" },
+        password: { type: "string" },
+      },
+      required: ["username", "password"],
+    },
+  },
+  loginBusiness: {
     body: {
       type: "object",
       properties: {

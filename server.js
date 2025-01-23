@@ -21,6 +21,9 @@ import { ErrorHandler } from "./app/helpers/handleError.js";
 
 // other modules
 import ejs from "ejs";
+import { createImageWithOverlay } from "./app/lib/create-canvas.js";
+import config from "./app/config/index.js";
+import { QrGenerator } from "./app/lib/qr-generator.js";
 
 /*
   Register External packages, routes, database connection
@@ -58,6 +61,14 @@ export default (app) => {
   app.register(routes, { prefix: "v1" });
   app.register(publicRoutes, { prefix: "v1" });
   app.register(authRoutes, { prefix: "v1/auth" });
+
+  app.get("/buffer", {}, async (req, res) => {
+    const fileBuffer = await createImageWithOverlay(
+      "Brandingwaale webtech",
+      await QrGenerator(config.qr_base)
+    );
+    res.header("Content-Type", "image/png").send(fileBuffer);
+  });
 
   app.register(fastifyView, {
     engine: {

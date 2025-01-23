@@ -6,12 +6,12 @@ import { schema } from "./schema.js";
 export default async function routes(fastify, options) {
   fastify.post(
     "/login/admin",
-    { schema: schema.login },
+    { schema: schema.loginAdmin },
     controller.verifyUserCredentials
   );
   fastify.post(
     "/login/business",
-    { schema: schema.login },
+    { schema: schema.loginBusiness },
     controller.verifyBusinessCredentials
   );
   fastify.post(

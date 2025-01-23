@@ -2,6 +2,7 @@
 import config from "../../config/index.js";
 import table from "../../db/models.js";
 import { ErrorHandler } from "../../helpers/handleError.js";
+import { createImageWithOverlay } from "../../lib/create-canvas.js";
 import { QrGenerator } from "../../lib/qr-generator.js";
 
 const create = async (req, res) => {
@@ -15,12 +16,14 @@ const create = async (req, res) => {
 
 const createReviewCard = async (req, res) => {
   const record = await table.BusinessModel.getByUserId(req.user_data.id);
-
   const qr = await QrGenerator(
     `${config.qr_base}/reviews/create?businessId=${record.id}&businessLink=${record.business_link}`
   );
-
-  res.send(qr);
+  console.log({ qr });
+  const card = await createImageWithOverlay(record.business_name, qr);
+  const base64 = Buffer.from(card, "binary").toString("base64");
+  console.log({ base64 });
+  res.send(base64);
 };
 
 const get = async (req, res) => {
