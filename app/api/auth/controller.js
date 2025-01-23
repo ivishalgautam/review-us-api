@@ -96,7 +96,6 @@ const createBusiness = async (req, res) => {
   console.log({ password });
   req.body.password = password;
   const data = await table.UserModel.create(req);
-  console.log({ data });
   if (data) {
     const business = await table.BusinessModel.create(req, data.id);
     console.log({ business });
