@@ -22,18 +22,20 @@ const verifyUserCredentials = async (req, res) => {
     return ErrorHandler({ code: 404, message: "User not found!" });
   }
 
-  if (!userData.is_active) {
-    return ErrorHandler({
-      code: 400,
-      message: "User not active. Please contact administrator!",
-    });
-  }
+  if (userData.role !== "admin") {
+    if (!userData.is_active) {
+      return ErrorHandler({
+        code: 400,
+        message: "User not active. Please contact administrator!",
+      });
+    }
 
-  if (!userData.is_payment_received) {
-    return ErrorHandler({
-      code: 400,
-      message: "Your payment is not completed. Please contact administrator!",
-    });
+    if (!userData.is_payment_received) {
+      return ErrorHandler({
+        code: 400,
+        message: "Your payment is not completed. Please contact administrator!",
+      });
+    }
   }
 
   let passwordIsValid = hash.verify(req.body.password, userData.password);
