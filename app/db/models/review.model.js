@@ -52,10 +52,7 @@ const init = async (sequelize) => {
       },
       body: {
         type: DataTypes.TEXT,
-        allowNull: false,
-        validate: {
-          notEmpty: { msg: "Review is required!" },
-        },
+        allowNull: true,
       },
     },
     {
