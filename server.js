@@ -2,6 +2,7 @@
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import path from "path";
+import fs from "fs";
 
 // fastify modules
 import cors from "@fastify/cors";
@@ -24,6 +25,7 @@ import ejs from "ejs";
 import { createImageWithOverlay } from "./app/lib/create-canvas.js";
 import config from "./app/config/index.js";
 import { QrGenerator } from "./app/lib/qr-generator.js";
+import { createA5PdfWithOverlay } from "./app/lib/create-a5-pdf.js";
 
 /*
   Register External packages, routes, database connection
@@ -63,11 +65,14 @@ export default (app) => {
   app.register(authRoutes, { prefix: "v1/auth" });
 
   app.get("/buffer", {}, async (req, res) => {
-    const fileBuffer = await createImageWithOverlay(
-      "Brandingwaale webtech",
-      await QrGenerator(config.qr_base)
+    const logoPath = path.join(process.cwd(), "public/images/logo.png");
+    const logoBase64 = `data:image/png;base64,${fs.readFileSync(logoPath).toString("base64")}`;
+
+    const fileBuffer = await createA5PdfWithOverlay(
+      await QrGenerator(config.qr_base),
+      logoBase64
     );
-    res.header("Content-Type", "image/png").send(fileBuffer);
+    res.header("Content-Type", "application/pdf").send(fileBuffer);
   });
 
   app.register(fastifyView, {

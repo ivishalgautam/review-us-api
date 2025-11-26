@@ -2,8 +2,11 @@
 import config from "../../config/index.js";
 import table from "../../db/models.js";
 import { ErrorHandler } from "../../helpers/handleError.js";
+import { createA5PdfWithOverlay } from "../../lib/create-a5-pdf.js";
 import { createImageWithOverlay } from "../../lib/create-canvas.js";
 import { QrGenerator } from "../../lib/qr-generator.js";
+import path from "path";
+import fs from "fs";
 
 const create = async (req, res) => {
   const record = await table.BusinessModel.getById(0, req.body.business_id);
@@ -19,11 +22,15 @@ const createReviewCard = async (req, res) => {
   const qr = await QrGenerator(
     `${config.qr_base}/reviews/create?businessId=${record.id}&businessLink=${record.business_link}`
   );
-  console.log({ qr });
-  const card = await createImageWithOverlay(record.business_name, qr);
-  const base64 = Buffer.from(card, "binary").toString("base64");
-  console.log({ base64 });
-  res.send(base64);
+
+  const logoPath = path.join(process.cwd(), record.logo[0]);
+  const logoBase64 = `data:image/png;base64,${fs.readFileSync(logoPath).toString("base64")}`;
+
+  const pdfBuffer = await createA5PdfWithOverlay(qr, logoBase64);
+
+  res.header("Content-Type", "application/pdf");
+  res.header("Content-Disposition", "attachment; filename=review-card.pdf");
+  res.send(pdfBuffer);
 };
 
 const get = async (req, res) => {

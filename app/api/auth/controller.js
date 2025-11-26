@@ -10,9 +10,10 @@ import { randomBytesGenerator } from "../../lib/encryption/index.js";
 import { QrGenerator } from "../../lib/qr-generator.js";
 import config from "../../config/index.js";
 import { sendEmailWithAttachment } from "../../lib/mailer.js";
-import { createImageWithOverlay } from "../../lib/create-canvas.js";
-import db from "../../db/index.js";
 import { sequelize } from "../../db/postgres.js";
+import { createA5PdfWithOverlay } from "../../lib/create-a5-pdf.js";
+import path from "path";
+import fs from "fs";
 
 const verifyUserCredentials = async (req, res) => {
   const userData = await table.UserModel.getByUsername(req);
@@ -25,6 +26,13 @@ const verifyUserCredentials = async (req, res) => {
     return ErrorHandler({
       code: 400,
       message: "User not active. Please contact administrator!",
+    });
+  }
+
+  if (!userData.is_payment_received) {
+    return ErrorHandler({
+      code: 400,
+      message: "Your payment is not completed. Please contact administrator!",
     });
   }
 
@@ -110,17 +118,21 @@ const createBusiness = async (req, res) => {
       const business = await table.BusinessModel.create(req, data.id, {
         transaction,
       });
-      console.log({ business });
       const qr = await QrGenerator(
         `${config.qr_base}/reviews/create?businessId=${business.id}&businessLink=${business.business_link}`
       );
-      await sendEmailWithAttachment(
-        await createImageWithOverlay(business.business_name, qr),
-        data.email,
-        data.mobile_number,
-        password,
-        business.business_name
-      );
+
+      const logoPath = path.join(process.cwd(), business.logo[0]);
+      const logoBase64 = `data:image/png;base64,${fs.readFileSync(logoPath).toString("base64")}`;
+      const fileBuffer = await createA5PdfWithOverlay(qr, logoBase64);
+
+      await sendEmailWithAttachment({
+        imageBuffer: fileBuffer,
+        toMail: data.email,
+        username: data.mobile_number,
+        password: password,
+        businessName: business.business_name,
+      });
     } else {
       return ErrorHandler({ code: 400, message: "Error creating business!" });
     }

@@ -4,6 +4,8 @@ import table from "../../db/models.js";
 import hash from "../../lib/encryption/index.js";
 import { ErrorHandler } from "../../helpers/handleError.js";
 import { sequelize } from "../../db/postgres.js";
+import { cleanupFiles } from "../../helpers/cleanup-files.js";
+import { getItemsToDelete } from "../../helpers/filter.js";
 
 const create = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -33,12 +35,32 @@ const update = async (req, res) => {
     return ErrorHandler({ code: 404, message: "User not exists" });
   }
 
+  const businessRecord = await table.BusinessModel.getByUserId(req.params.id);
+
   const user = await table.UserModel.update(req);
+  const documentsToDelete = [];
+  if (businessRecord) {
+    const existingLogoDocs = businessRecord.logo;
+    const updatedLogoDocs = req.body.logo_urls;
+    if (updatedLogoDocs) {
+      req.body.logo = [...(req.body?.logo ?? []), ...updatedLogoDocs];
+      documentsToDelete.push(
+        ...getItemsToDelete(existingLogoDocs, updatedLogoDocs)
+      );
+    }
+
+    await table.BusinessModel.update(req, businessRecord.id);
+  }
 
   if (user && req.body.password) {
     req.body.new_password = req.body.password;
     await table.UserModel.updatePassword(req, req.user_data.id);
   }
+
+  if (documentsToDelete.length) {
+    await cleanupFiles(documentsToDelete);
+  }
+
   return res.send({ status: true, message: "Updated" });
 };
 
@@ -55,6 +77,22 @@ const updateStatus = async (req, res) => {
   res.send({
     status: true,
     message: data?.is_active ? "Customer Active." : "Customer Inactive.",
+  });
+};
+
+const updatePaymentStatus = async (req, res) => {
+  const record = await table.UserModel.getById(req);
+  if (!record) {
+    return ErrorHandler({ code: 404, message: "User not exists" });
+  }
+  const data = await table.UserModel.updatePaymentStatus(
+    req.params.id,
+    req.body.is_payment_received
+  );
+
+  res.send({
+    status: true,
+    message: "Updated",
   });
 };
 
@@ -123,7 +161,7 @@ const checkUsername = async (req, res) => {
 const getUser = async (req, res) => {
   const record = await table.UserModel.getById(0, req.user_data.id);
   if (!record) {
-    return ErrorHandler({ code: 401, messaege: "invalid token" });
+    return ErrorHandler({ code: 401, message: "invalid token" });
   }
 
   return res.send(req.user_data);
@@ -146,6 +184,7 @@ export default {
   create: create,
   update: update,
   deleteById: deleteById,
+  updatePaymentStatus: updatePaymentStatus,
   get: get,
   getById: getById,
   checkUsername: checkUsername,

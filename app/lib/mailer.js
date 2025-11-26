@@ -1,13 +1,13 @@
 import config from "../config/index.js";
 import nodemailer from "nodemailer";
 
-export async function sendEmailWithAttachment(
+export async function sendEmailWithAttachment({
   imageBuffer,
   toMail,
   username,
   password,
-  businessName = ""
-) {
+  businessName = "",
+}) {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -23,9 +23,9 @@ export async function sendEmailWithAttachment(
     text: `Username: ${username}, Password: ${password}`,
     attachments: [
       {
-        filename: `${businessName}.png`,
+        filename: `${businessName}.pdf`,
         content: imageBuffer,
-        contentType: "image/png",
+        contentType: "application/pdf",
       },
     ],
   };

@@ -7,9 +7,9 @@ export const schema = {
         rating: { type: "number", minimum: 0 },
         name: { type: "string", minLength: 3 },
         contact_number: { type: "string" },
-        body: { type: "string", minLength: 10 },
+        body: { type: "string" },
       },
-      required: ["business_id", "rating", "name", "contact_number", "body"],
+      required: ["business_id", "rating", "name", "contact_number"],
     },
   },
 };

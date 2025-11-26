@@ -43,6 +43,7 @@ const init = async (sequelize) => {
           isUrl: { args: true, msg: "Please enter valid business link!" },
         },
       },
+      logo: { type: DataTypes.ARRAY(DataTypes.TEXT), defaultValue: [] },
     },
     {
       createdAt: "created_at",
@@ -59,6 +60,7 @@ const create = async (req, user_id, { transaction }) => {
       user_id: user_id,
       business_name: req.body.business_name,
       business_link: req.body.business_link,
+      logo: req.body.logo,
     },
     { transaction }
   );
@@ -66,15 +68,16 @@ const create = async (req, user_id, { transaction }) => {
   return data.dataValues;
 };
 
-const update = async (req, user_id) => {
+const update = async (req, id) => {
   return await BusinessModel.update(
     {
       business_name: req.body.business_name,
       business_link: req.body.business_link,
+      logo: req.body.logo,
     },
     {
       where: {
-        user_id: user_id,
+        id: id,
       },
       returning: true,
       raw: true,

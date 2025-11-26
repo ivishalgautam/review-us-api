@@ -66,6 +66,10 @@ const init = async (sequelize) => {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
       },
+      is_payment_received: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
       role: {
         type: DataTypes.ENUM({
           values: ["admin", "user"],
@@ -131,7 +135,7 @@ const get = async (req) => {
 
   const query = `
   SELECT 
-    usr.id, usr.mobile_number, usr.email, usr.role, usr.is_active, usr.created_at,
+    usr.id, usr.mobile_number, usr.email, usr.role, usr.is_active, usr.is_payment_received, usr.created_at,
     COUNT(usr.id) OVER()::integer as total
   FROM ${constants.models.USER_TABLE} usr
   ${whereClause}
@@ -148,21 +152,22 @@ const get = async (req) => {
 };
 
 const getById = async (req, user_id) => {
-  return await UserModel.findOne({
-    where: {
+  let query = `
+  SELECT 
+      usr.id, usr.username, usr.email, usr.password, usr.is_active, usr.role, usr.mobile_number, usr.country_code,
+      bs.id as business_id, bs.business_name, bs.business_link, bs.logo
+    FROM ${constants.models.USER_TABLE} usr
+    LEFT JOIN ${constants.models.BUSINESS_TABLE} bs ON bs.user_id = usr.id 
+    WHERE usr.id = :id
+  `;
+
+  return await UserModel.sequelize.query(query, {
+    type: QueryTypes.SELECT,
+    replacements: {
       id: req?.params?.id || user_id,
     },
     raw: true,
-    attributes: [
-      "id",
-      "username",
-      "email",
-      "password",
-      "is_active",
-      "role",
-      "mobile_number",
-      "country_code",
-    ],
+    plain: true,
   });
 };
 
@@ -327,6 +332,32 @@ const updateStatus = async (id, status) => {
 
   return rows;
 };
+const updatePaymentStatus = async (id, status) => {
+  console.log({ status });
+  const [rowCount, rows] = await UserModel.update(
+    {
+      is_payment_received: status,
+    },
+    {
+      where: {
+        id: id,
+      },
+      returning: [
+        "id",
+        "username",
+        "email",
+        "is_active",
+        "role",
+        "mobile_number",
+        "country_code",
+      ],
+      plain: true,
+      raw: true,
+    }
+  );
+
+  return rows;
+};
 
 const verify = async ({ user_id, status }) => {
   const [rowCount, rows] = await UserModel.update(
@@ -381,6 +412,7 @@ export default {
   getByUserIds: getByUserIds,
   findUsersWithBirthdayToday: findUsersWithBirthdayToday,
   updateStatus: updateStatus,
+  updatePaymentStatus: updatePaymentStatus,
   verify: verify,
   getByMobile: getByMobile,
 };

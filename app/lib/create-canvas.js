@@ -1,6 +1,4 @@
 import path from "path";
-import { dirname } from "path";
-import { fileURLToPath } from "url";
 import { createCanvas, loadImage } from "canvas";
 
 export async function createImageWithOverlay(
@@ -10,13 +8,7 @@ export async function createImageWithOverlay(
   const canvas = createCanvas(1020, 1800); // Adjust dimensions as needed
   const context = canvas.getContext("2d");
 
-  const currentFilePath = fileURLToPath(import.meta.url);
-  const currentDirPath = dirname(currentFilePath);
-  const publicPath = path.join(
-    currentDirPath,
-    "../../public/images/",
-    "template.png"
-  );
+  const publicPath = path.join(process.cwd(), "public/images/template.png");
 
   // Load the base image
   const image = await loadImage(publicPath); // Base image

@@ -2,6 +2,7 @@
 import controller from "./controller.js";
 import userController from "../users/controller.js";
 import { schema } from "./schema.js";
+import { multipartPreHandler } from "../../middlewares/multipart-prehandler.js";
 
 export default async function routes(fastify, options) {
   fastify.post(
@@ -21,7 +22,7 @@ export default async function routes(fastify, options) {
   );
   fastify.post(
     "/register/business",
-    { schema: schema.signupBusiness },
+    { preHandler: async (req, res) => multipartPreHandler(req, res, []) },
     controller.createBusiness
   );
   fastify.post("/refresh", {}, controller.verifyRefreshToken);
