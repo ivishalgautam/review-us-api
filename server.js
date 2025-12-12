@@ -22,7 +22,7 @@ import { ErrorHandler } from "./app/helpers/handleError.js";
 
 // other modules
 import ejs from "ejs";
-import { createImageWithOverlay } from "./app/lib/create-canvas.js";
+// import { createImageWithOverlay } from "./app/lib/create-canvas.js";
 import config from "./app/config/index.js";
 import { QrGenerator } from "./app/lib/qr-generator.js";
 import { createA5PdfWithOverlay } from "./app/lib/create-a5-pdf.js";
@@ -54,7 +54,7 @@ export default (app) => {
     root: path.join(dirname(fileURLToPath(import.meta.url), "public")),
   });
 
-  app.register(cors, { origin: "*" });
+  app.register(cors, { origin: "https://magicqr.ninjarankers.com" });
   app.register(pg_database);
   app.register(fastifyMultipart, {
     limits: { fileSize: 5 * 1024 * 1024 * 1024 }, // Set the limit to 5 GB or adjust as needed
