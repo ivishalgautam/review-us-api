@@ -54,7 +54,7 @@ export default (app) => {
     root: path.join(dirname(fileURLToPath(import.meta.url), "public")),
   });
 
-  app.register(cors, { origin: "https://magicqr.ninjarankers.com" });
+  app.register(cors, { origin: "*" });
   app.register(pg_database);
   app.register(fastifyMultipart, {
     limits: { fileSize: 5 * 1024 * 1024 * 1024 }, // Set the limit to 5 GB or adjust as needed
